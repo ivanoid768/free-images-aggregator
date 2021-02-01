@@ -1,0 +1,15 @@
+{
+  "name": "free_photo_aggregator",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "ivan",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "workerpool": "^6.1.0"
+  }
+}
