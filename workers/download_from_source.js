@@ -1,5 +1,6 @@
 import { worker } from 'workerpool';
 import fetch from 'node-fetch';
+import {} from 'pg';
 
 import { CONFIG, SOURCE } from '../config.js';
 

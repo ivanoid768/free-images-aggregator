@@ -6,10 +6,12 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "initdb": "node db_init.js"
   },
   "dependencies": {
     "node-fetch": "^2.6.1",
+    "pg": "^8.5.1",
     "workerpool": "^6.1.0"
   }
 }

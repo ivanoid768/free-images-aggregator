@@ -27,4 +27,6 @@ export const CONFIG = {
     PEXELS_LIMIT: 200,
 
     CATEGORY: env.CATEGORY || 'robotics',
+
+    PG_DB_CONNECTION_URI: env.DB_CONNECTION_URI || `postgresql://postgres:password@localhost:5432/free_photo_aggr`,
 }
