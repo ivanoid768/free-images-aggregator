@@ -11,9 +11,9 @@ const pool1 = pool(__dirname + '/workers/download_from_source.js', {maxWorkers: 
 
 let taskResults = [];
 
-for (let i = 1; i <= 10; i++) {
+for (let i = 1; i <= 1; i++) {
     // run registered functions on the worker via exec
-    let taskResult = pool1.exec('theWorker', [{source:SOURCE.PIXABAY, page: 2}])
+    let taskResult = pool1.exec('theWorker', [{source:SOURCE.PIXABAY, page: 1}])
         .then(function (result) {
             console.log(`Result: ${i} ` + result.images[0].imageURL + ' total: ' + result.total); // outputs 55
             console.log(result.images[0]);

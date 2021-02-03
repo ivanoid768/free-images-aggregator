@@ -79,44 +79,45 @@ function GetImageFromSource({ source, page }) {
 async function saveImagesToDB(images) {
     await client.connect()
 
-    // let insertText = `INSERT INTO distributors (did, dname)
-    // VALUES (5, 'Gizmo Transglobal'), (6, 'Associated Computing, Inc')
-    // ON CONFLICT (did) DO UPDATE SET dname = EXCLUDED.dname;`
+    let valuesArr = images.reduce((imagesArr, image)=>{
+        imagesArr.push(image.id.toString())
+        imagesArr.push(image.source)
+        imagesArr.push(image.imageURL)
+        imagesArr.push(image.searchText)
+        imagesArr.push(image.userId)
+        imagesArr.push(image.username)
+        imagesArr.push(image.pageURL)
 
-    // INSERT INTO films (code, title, did, date_prod, kind) VALUES
-    // ('B6717', 'Tampopo', 110, '1985-02-10', 'Comedy'),
-    // ('HG120', 'The Dinner Game', 140, DEFAULT, 'Comedy');
+        return imagesArr;
+    }, [])
 
-    // source: SOURCE.PIXABAY,
-    // id: hit.id,
-    // imageURL: hit.largeImageURL,
-    // searchText: `${hit.tags} ${hit.pageURL}`,
-    // userId: hit.user_id,
-    // username: hit.user,
-    // pageURL: hit.pageURL,
+    let valuesParamsText = images.map((_image, i)=>{
+        let index = i * 7;
 
-    let valuesText = images.map(image=>{
-        return `(${image.id},'${image.source}','${image.imageURL}','${image.searchText}',${image.userId},'${image.username}','${image.pageURL}')`
+        return `($${index + 1},$${index + 2},$${index + 3},$${index + 4},$${index + 5},$${index + 6},$${index + 7})`
     }).join(',')
 
     let updateValuesText = `(EXCLUDED.source_name, EXCLUDED.image_url, EXCLUDED.search_text, EXCLUDED.user_id, EXCLUDED.username, EXCLUDED.page_url)`
 
     let insertText = `
         INSERT INTO images (image_id, source_name, image_url, search_text, user_id, username, page_url)
-        VALUES ${valuesText}
+        VALUES ${valuesParamsText}
         ON CONFLICT (image_id) DO UPDATE SET (source_name, image_url, search_text, user_id, username, page_url) = ${updateValuesText};
     `
 
+    console.log(valuesArr);
     console.log('insertText: ', insertText);
 
-    const res = await client.query(insertText)
-    console.log(res.command, res)
+    const res = await client.query(insertText, valuesArr)
+    console.log(res.command)
     await client.end()
 }
 
 async function theWorker({ source, page }) {
     let imagesResp = await GetImageFromSource({ source, page })
-    await saveImagesToDB(imagesResp.images)
+    let images = imagesResp.images
+
+    await saveImagesToDB(images)
 
     return imagesResp;
 }
