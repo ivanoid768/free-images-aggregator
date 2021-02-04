@@ -2,9 +2,12 @@ import { pool } from 'workerpool';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { SOURCE } from './config.js';
+import { startAPI } from './api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+startAPI()
 
 // create a worker pool using an external worker script
 const pool1 = pool(__dirname + '/workers/download_from_source.js', {maxWorkers: 3});

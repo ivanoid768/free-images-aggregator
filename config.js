@@ -29,4 +29,8 @@ export const CONFIG = {
     CATEGORY: env.CATEGORY || 'robotics',
 
     PG_DB_CONNECTION_URI: env.DB_CONNECTION_URI || `postgresql://postgres:password@localhost:5432/free_photo_aggr`,
+
+    CORS_ORIGIN: env.CORS_ORIGIN || '*',
+
+    ADMIN_PASSWORD: env.ADMIN_PASSWORD || 'password123',
 }
