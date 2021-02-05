@@ -1,6 +1,7 @@
 import { worker } from 'workerpool';
 import fetch from 'node-fetch';
 import pkg from 'pg';
+import { createApi } from 'unsplash-js';
 
 import { CONFIG, SOURCE } from '../config.js';
 
@@ -9,6 +10,11 @@ const { Client } = pkg;
 const client = new Client({
     connectionString: CONFIG.PG_DB_CONNECTION_URI,
 })
+
+const unsplashApi = createApi({
+  accessKey: CONFIG.UNSPLASH_API_KEY,
+  fetch: fetch,
+});
 
 async function GetImageDataFromPixabay({ page }) {
     let url = `https://pixabay.com/api/?key=${CONFIG.PIXABAY_API_KEY}&q=${CONFIG.CATEGORY}&page=${page}&per_page=200`
@@ -50,9 +56,25 @@ async function GetImageDataFromPixabay({ page }) {
 }
 
 async function GetImageDataFromUnsplash({ page }) {
+    let resp = await unsplashApi.search.getPhotos({query: CONFIG.CATEGORY, page, perPage: 30})
+
+    let images = resp.response.results.map(photo => {
+        return {
+            source: SOURCE.UNSPLASH,
+            id: photo.id,
+            imageURL: photo.urls.full,
+            searchText: `${photo.alt_description} ${photo.description} ${photo.links.self}`,
+            userId: photo.user.id,
+            username: photo.user.username,
+            pageURL: photo.links.html,
+        }
+    })
+
+    let total = resp.response.total;
+
     return {
-        images: [],
-        total: 0,
+        images,
+        total,
     }
 }
 
