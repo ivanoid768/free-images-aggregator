@@ -2,6 +2,7 @@ import { worker } from 'workerpool';
 import fetch from 'node-fetch';
 import pkg from 'pg';
 import { createApi } from 'unsplash-js';
+import { createClient } from 'pexels'
 
 import { CONFIG, SOURCE } from '../config.js';
 
@@ -12,9 +13,11 @@ const client = new Client({
 })
 
 const unsplashApi = createApi({
-  accessKey: CONFIG.UNSPLASH_API_KEY,
-  fetch: fetch,
+    accessKey: CONFIG.UNSPLASH_API_KEY,
+    fetch: fetch,
 });
+
+const pexelsApi = createClient(CONFIG.PEXELS_API_KEY)
 
 async function GetImageDataFromPixabay({ page }) {
     let url = `https://pixabay.com/api/?key=${CONFIG.PIXABAY_API_KEY}&q=${CONFIG.CATEGORY}&page=${page}&per_page=200`
@@ -56,7 +59,7 @@ async function GetImageDataFromPixabay({ page }) {
 }
 
 async function GetImageDataFromUnsplash({ page }) {
-    let resp = await unsplashApi.search.getPhotos({query: CONFIG.CATEGORY, page, perPage: 30})
+    let resp = await unsplashApi.search.getPhotos({ query: CONFIG.CATEGORY, page, perPage: 30 })
 
     let images = resp.response.results.map(photo => {
         return {
@@ -79,9 +82,25 @@ async function GetImageDataFromUnsplash({ page }) {
 }
 
 async function GetImageDataFromPexels({ page }) {
+    let resp = await pexelsApi.photos.search({query: CONFIG.CATEGORY, page, per_page: 80})
+
+    let images = resp.photos.map(photo => {
+        return {
+            source: SOURCE.PEXELS,
+            id: photo.id,
+            imageURL: photo.src.original,
+            searchText: `${photo.url}`,
+            userId: photo.photographer_id,
+            username: photo.photographer,
+            pageURL: photo.url,
+        }
+    })
+
+    let total = resp.total_results;
+
     return {
-        images: [],
-        total: 0,
+        images,
+        total,
     }
 }
 
@@ -101,7 +120,7 @@ function GetImageFromSource({ source, page }) {
 async function saveImagesToDB(images) {
     await client.connect()
 
-    let valuesArr = images.reduce((imagesArr, image)=>{
+    let valuesArr = images.reduce((imagesArr, image) => {
         imagesArr.push(image.id.toString())
         imagesArr.push(image.source)
         imagesArr.push(image.imageURL)
@@ -113,7 +132,7 @@ async function saveImagesToDB(images) {
         return imagesArr;
     }, [])
 
-    let valuesParamsText = images.map((_image, i)=>{
+    let valuesParamsText = images.map((_image, i) => {
         let index = i * 7;
 
         return `($${index + 1},$${index + 2},$${index + 3},$${index + 4},$${index + 5},$${index + 6},$${index + 7})`
