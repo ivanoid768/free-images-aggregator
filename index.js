@@ -2,7 +2,7 @@ import { pool } from 'workerpool';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { startAPI } from './api.js';
-import { getAllImagesData } from './download_from_source.js';
+import { GetImageDataFromUnsplash } from './download_from_source.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +12,9 @@ startAPI()
 // create a worker pool using an external worker script
 const pool1 = pool(__dirname + '/workers/download_from_source_worker.js', {maxWorkers: 3});
 
-getAllImagesData(pool1)
+// getAllImagesData(pool1)
+
+GetImageDataFromUnsplash({page: 2})
 
 // let taskResults = [];
 

@@ -16,7 +16,7 @@ async function createImageTable() {
             source_name varchar(50) NOT NULL,
             image_url varchar NOT NULL,
             search_text varchar NOT NULL,
-            user_id integer,
+            user_id varchar(50),
             username varchar(100),
             page_url varchar
         );

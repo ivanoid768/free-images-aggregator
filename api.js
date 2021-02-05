@@ -19,7 +19,7 @@ app.use(json());
 
 app.use(cors(corsOptions))
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     await client.connect()
     let configRes = await client.query(`SELECT * FROM config;`)
     await client.end()
