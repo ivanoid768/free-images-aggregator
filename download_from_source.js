@@ -1,10 +1,9 @@
-import { worker } from 'workerpool';
 import fetch from 'node-fetch';
 import pkg from 'pg';
 import { createApi } from 'unsplash-js';
 import { createClient } from 'pexels'
 
-import { CONFIG, SOURCE } from '../config.js';
+import { CONFIG, SOURCE } from './config.js';
 
 const { Client } = pkg;
 
@@ -19,8 +18,12 @@ const unsplashApi = createApi({
 
 const pexelsApi = createClient(CONFIG.PEXELS_API_KEY)
 
+const UNSPLASH_PER_PAGE = 30;
+const PEXELS_PER_PAGE = 200;
+const PIXABAY_PER_PAGE = 80;
+
 async function GetImageDataFromPixabay({ page }) {
-    let url = `https://pixabay.com/api/?key=${CONFIG.PIXABAY_API_KEY}&q=${CONFIG.CATEGORY}&page=${page}&per_page=200`
+    let url = `https://pixabay.com/api/?key=${CONFIG.PIXABAY_API_KEY}&q=${CONFIG.CATEGORY}&page=${page}&per_page=${PEXELS_PER_PAGE}`
     console.log('url: ', url);
     let res = await fetch(url)
     console.log(res.status, res.statusText);
@@ -59,7 +62,7 @@ async function GetImageDataFromPixabay({ page }) {
 }
 
 async function GetImageDataFromUnsplash({ page }) {
-    let resp = await unsplashApi.search.getPhotos({ query: CONFIG.CATEGORY, page, perPage: 30 })
+    let resp = await unsplashApi.search.getPhotos({ query: CONFIG.CATEGORY, page, perPage: UNSPLASH_PER_PAGE })
 
     let images = resp.response.results.map(photo => {
         return {
@@ -82,7 +85,7 @@ async function GetImageDataFromUnsplash({ page }) {
 }
 
 async function GetImageDataFromPexels({ page }) {
-    let resp = await pexelsApi.photos.search({query: CONFIG.CATEGORY, page, per_page: 80})
+    let resp = await pexelsApi.photos.search({ query: CONFIG.CATEGORY, page, per_page: PIXABAY_PER_PAGE })
 
     let images = resp.photos.map(photo => {
         return {
@@ -163,7 +166,40 @@ async function theWorker({ source, page }) {
     return imagesResp;
 }
 
-// create a worker and register public functions
-worker({
-    theWorker: theWorker
-});
+async function getAllImagesDataFromSource(source, totalPages, workersPool) {
+    let taskResults = []
+
+    for (let i = 1; i <= totalPages; i++) {
+        // run registered functions on the worker via exec
+        let taskResult = workersPool.exec('theWorker', [{ source: source, page: i }])
+            .then(function (result) {
+                console.log(`Result: ${i} ` + result.images[0].imageURL + ' total: ' + result.total);
+                console.log(result.images[0]);
+                return result;
+            })
+            .catch(function (err) {
+                console.error(err);
+            })
+
+        taskResults.push(taskResult)
+    }
+
+    return taskResults;
+}
+
+async function getAllImagesData(workersPool) {
+    let unsplashTotalPages = Math.ceil((await GetImageDataFromUnsplash({ page: 1 })).total / UNSPLASH_PER_PAGE);
+    let pexelsTotalPages = Math.ceil((await GetImageDataFromPexels({ page: 1 })).total / PEXELS_PER_PAGE);
+    let pixabayTotalPages = Math.ceil((await GetImageDataFromPixabay({ page: 1 })).total / PIXABAY_PER_PAGE);
+
+    let res1 = getAllImagesDataFromSource(SOURCE.UNSPLASH, unsplashTotalPages, workersPool)
+    let res2 = getAllImagesDataFromSource(SOURCE.PIXABAY, pixabayTotalPages, workersPool)
+    let res3 = getAllImagesDataFromSource(SOURCE.PEXELS, pexelsTotalPages, workersPool)
+
+    await Promise.all([...res1, ...res2, ...res3])
+    console.log(`Download completed!`);
+
+    workersPool.terminate();
+}
+
+export { getAllImagesData, theWorker }
