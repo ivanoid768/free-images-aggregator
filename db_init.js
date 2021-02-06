@@ -27,12 +27,17 @@ async function createImageTable() {
 
     let configTableText = `
         CREATE TABLE IF NOT EXISTS config (
+            id oid NOT NULL UNIQUE, 
             user_api_token varchar(50) NOT NULL,
+            unsplash_prev_total integer,
+            pexels_prev_total integer,
+            pixabay_prev_total integer
         );
     `
 
     const configTableRes = await client.query(configTableText)
     console.log(configTableRes.command)
+    await client.query(`insert into config (id, user_api_token, pexels_prev_total, pixabay_prev_total, unsplash_prev_total) values (1, '', 0, 0, 0);`)
 
     // Create extension to speed up text search
     await client.query('CREATE EXTENSION IF NOT EXISTS pg_trgm;')

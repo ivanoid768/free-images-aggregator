@@ -185,14 +185,14 @@ async function theWorker({ source, page }) {
     return imagesResp;
 }
 
-async function getAllImagesDataFromSource(source, totalPages, workersPool) {
+async function getAllImagesDataFromSource(source, pages, workersPool) {
     let taskResults = []
 
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 0; i < pages.length; i++) {
         // run registered functions on the worker via exec
-        let taskResult = workersPool.exec('theWorker', [{ source: source, page: i }])
+        let taskResult = workersPool.exec('theWorker', [{ source: source, page: pages[i] }])
             .then(function (result) {
-                console.log(`Result: ${i} ` + result.images[0].imageURL + ' total: ' + result.total);
+                console.log(`Result: ${pages[i]} ` + result.images[0].imageURL + ' total: ' + result.total);
                 console.log(result.images[0]);
                 return result;
             })
@@ -206,21 +206,69 @@ async function getAllImagesDataFromSource(source, totalPages, workersPool) {
     return taskResults;
 }
 
+async function getCurrentTotalForSource(source) {
+    await client.connect()
+
+    let sql = `select count(*) as current_total from images i where i.source_name = '${source}';`
+    let resp = await client.query(sql)
+
+    await client.end()
+
+    return resp.rows[0].current_total;
+}
+
+async function getPrevTotalForSource(source) {
+    await client.connect()
+
+    let sql = `select c.${source.toLowerCase()}_prev_total from config c limit 1;`
+    let resp = await client.query(sql)
+
+    await client.end()
+
+    return resp.rows[0][`${source.toLowerCase()}_prev_total`];
+}
+
+async function setPrevTotal(source, total) {
+    await client.connect()
+
+    let sql = `update config set ${source.toLowerCase()}_prev_total = ${total} where id = 1;`
+    await client.query(sql)
+    await client.end()
+
+    return true;
+}
+
+async function updateImageDataFromSource(workersPool, source, getImageDataFunc, per_page) {
+    let pixabayResp = await getImageDataFunc({ page: 1 })
+    let pixabayCurrentTotalOnSource = pixabayResp.total
+    let pixabayPrevTotalOnSource = await getPrevTotalForSource(source)
+    let pixabayTotalInDB = await getCurrentTotalForSource(source)
+
+    let pixabayNewImagesCount = pixabayCurrentTotalOnSource - pixabayPrevTotalOnSource;
+    let pixabayRemainToGetFromSource = pixabayPrevTotalOnSource - pixabayTotalInDB;
+    let pixabayPages = [];
+
+    for (let i = 1; i <= pixabayNewImagesCount; i = i * per_page) {
+        pixabayPages.push(i)
+    }
+
+    let pixabayRemainStartPage = Math.floor((pixabayNewImagesCount + pixabayTotalInDB) / per_page)
+
+    for (let i = pixabayRemainStartPage; i <= pixabayRemainToGetFromSource; i = i * per_page) {
+        pixabayPages.push(i)
+    }
+
+    pixabayPages = pixabayPages.slice(0, Math.min(pixabayPages.length, pixabayResp.limit))
+
+    await setPrevTotal(source, pixabayResp.total)
+
+    return getAllImagesDataFromSource(source, pixabayPages, workersPool)
+}
+
 async function getAllImagesData(workersPool) {
-    let unsplashResp = await GetImageDataFromUnsplash({ page: 1 }) 
-    let unsplashTotalPages = Math.min(Math.ceil(unsplashResp.total / UNSPLASH_PER_PAGE), unsplashResp.limit);
-
-    let pexelsResp =await GetImageDataFromPexels({ page: 1 }) 
-    let pexelsTotalPages = Math.min(Math.ceil(pexelsResp.total / PEXELS_PER_PAGE), pexelsResp.limit);
-
-    let pixabayTotalPages = Math.ceil((await GetImageDataFromPixabay({ page: 1 })).total / PIXABAY_PER_PAGE);
-
-    let pixabayResp =await GetImageDataFromPixabay({ page: 1 })
-    let pixabayTotalPages = Math.min(Math.ceil(pixabayResp.total / PIXABAY_PER_PAGE), pixabayResp.limit);
-
-    let res1 = getAllImagesDataFromSource(SOURCE.UNSPLASH, unsplashTotalPages, workersPool)
-    let res2 = getAllImagesDataFromSource(SOURCE.PIXABAY, pixabayTotalPages, workersPool)
-    let res3 = getAllImagesDataFromSource(SOURCE.PEXELS, pexelsTotalPages, workersPool)
+    let res1 = updateImageDataFromSource(workersPool, SOURCE.UNSPLASH, GetImageDataFromUnsplash)
+    let res2 = updateImageDataFromSource(workersPool, SOURCE.PIXABAY, GetImageDataFromPixabay)
+    let res3 = updateImageDataFromSource(workersPool, SOURCE.PEXELS, GetImageDataFromPexels)
 
     await Promise.all([...res1, ...res2, ...res3])
     console.log(`Download completed!`);
