@@ -4,9 +4,9 @@
 
 # Stocks:
 
-[Unsplash](www.unsplash.com)
-[Pexels](www.pexels.com)
-[Pixabay](www.pixabay.com)
+* [Unsplash](https://www.unsplash.com)
+* [Pexels](https://www.pexels.com)
+* [Pixabay](https://www.pixabay.com)
 
 # Installation
 
