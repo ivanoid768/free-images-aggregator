@@ -1,4 +1,5 @@
 import {env} from 'process';
+import {cpus} from 'os'
 
 if(!env.PIXABAY_API_KEY){
     console.warn(`NO_PIXABAY_API_KEY: Can't get image data from Pixabay`)
@@ -33,4 +34,8 @@ export const CONFIG = {
     CORS_ORIGIN: env.CORS_ORIGIN || '*',
 
     ADMIN_PASSWORD: env.ADMIN_PASSWORD || 'password123',
+
+    UPDATE_IMAGE_DATA_WORKER_COUNT: env.UPDATE_IMAGE_DATA_WORKER_COUNT || cpus().length - 1,
+
+    UPDATE_CRON: env.UPDATE_CRON || '0 * * * *', // Every hour by default
 }

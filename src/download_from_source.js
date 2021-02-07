@@ -61,6 +61,16 @@ export async function GetImageDataFromUnsplash({ page }) {
         headers: { 'Authorization': `Client-ID ${CONFIG.UNSPLASH_API_KEY}` },
     })
 
+    if (resp.status !== 200) {
+        return {
+            images: [],
+            total: 0,
+            limit: 0,
+        }
+    }
+
+    console.log(resp.statusText, resp.status);
+
     let image_data = await resp.json();
 
     let images = image_data.results.map(photo => {

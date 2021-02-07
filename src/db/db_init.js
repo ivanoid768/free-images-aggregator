@@ -1,5 +1,5 @@
 import pkg from 'pg';
-import { CONFIG } from './config.js';
+import { CONFIG } from '../config.js';
 
 const { Client } = pkg;
 
