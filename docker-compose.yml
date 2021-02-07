@@ -1,0 +1,28 @@
+version: '3.5'
+
+services:
+  postgres:
+    container_name: fia-postgres
+    image: postgres:12.4-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: fia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: fia
+
+  api:
+    container_name: fia-api
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    expose:
+      - 4000
+    ports:
+    - 4000:4000
+    cap_add:
+      - SYS_ADMIN
+    depends_on:
+      - postgres

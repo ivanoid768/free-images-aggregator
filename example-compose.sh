@@ -1,0 +1,1 @@
+POSTGRES_PASSWORD=password docker-compose up
