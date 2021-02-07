@@ -18,3 +18,7 @@
 * Edit them add your ENV vars like in example-start.sh and example-compose.sh
 * Execute compose.sh
 * Send requests to [yourdomain].com:4000
+
+## Usage
+* Send POST to http(s)://[yourdomain].com:4000/admin/usertoken to issue token for user's requests. body.password must be equal to ADMIN_PASSWORD env.
+* Send GET to http(s)://[yourdomain].com:4000/images?page=1&search=someword to get images. Authentication header must be equal to user's token.
