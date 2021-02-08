@@ -1,17 +1,23 @@
 import fetch from 'node-fetch';
-import pkg from 'pg';
+import pg from 'pg';
 
 import { CONFIG, SOURCE } from './config.js';
 
-const { Client } = pkg;
+const { Pool } = pg;
 
-const client = new Client({
+const pgPool = new Pool({
     connectionString: CONFIG.PG_DB_CONNECTION_URI,
+    max: 2,
 })
 
 const UNSPLASH_PER_PAGE = 30;
 const PEXELS_PER_PAGE = 200;
 const PIXABAY_PER_PAGE = 80;
+
+pgPool.on('error', (err) => {
+    console.error('Unexpected error on idle client', err)
+    process.exit(-1)
+})
 
 async function GetImageDataFromPixabay({ page }) {
     let url = `https://pixabay.com/api/?key=${CONFIG.PIXABAY_API_KEY}&q=${CONFIG.CATEGORY}&page=${page}&per_page=${PEXELS_PER_PAGE}`
@@ -150,8 +156,6 @@ function GetImageFromSource({ source, page }) {
 }
 
 async function saveImagesToDB(images) {
-    await client.connect()
-
     let valuesArr = images.reduce((imagesArr, image) => {
         imagesArr.push(image.id)
         imagesArr.push(image.source)
@@ -181,9 +185,8 @@ async function saveImagesToDB(images) {
     console.log(valuesArr);
     console.log('insertText: ', insertText);
 
-    const res = await client.query(insertText, valuesArr)
+    const res = await pgPool.query(insertText, valuesArr)
     console.log(res.command)
-    await client.end()
 }
 
 async function theWorker({ source, page }) {
@@ -217,33 +220,22 @@ async function getAllImagesDataFromSource(source, pages, workersPool) {
 }
 
 async function getCurrentTotalForSource(source) {
-    await client.connect()
-
     let sql = `select count(*) as current_total from images i where i.source_name = '${source}';`
-    let resp = await client.query(sql)
-
-    await client.end()
+    let resp = await pgPool.query(sql)
 
     return resp.rows[0].current_total;
 }
 
 async function getPrevTotalForSource(source) {
-    await client.connect()
-
     let sql = `select c.${source.toLowerCase()}_prev_total from config c limit 1;`
-    let resp = await client.query(sql)
-
-    await client.end()
+    let resp = await pgPool.query(sql)
 
     return resp.rows[0][`${source.toLowerCase()}_prev_total`];
 }
 
 async function setPrevTotal(source, total) {
-    await client.connect()
-
     let sql = `update config set ${source.toLowerCase()}_prev_total = ${total} where id = 1;`
-    await client.query(sql)
-    await client.end()
+    await pgPool.query(sql)
 
     return true;
 }
@@ -283,7 +275,8 @@ async function getAllImagesData(workersPool) {
     await Promise.all([...res1, ...res2, ...res3])
     console.log(`Download completed!`);
 
-    workersPool.terminate();
+    await workersPool.terminate();
+    await pgPool.end()
 }
 
 export { getAllImagesData, theWorker }

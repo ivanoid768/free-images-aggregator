@@ -1,21 +1,10 @@
 import express, { json, urlencoded } from 'express';
 import cors from 'cors';
 import { nanoid } from 'nanoid';
-import pg from 'pg';
 
 import { CONFIG } from './config.js';
 
-const { Pool } = pg;
-
-const pgPool = new Pool({
-    connectionString: CONFIG.PG_DB_CONNECTION_URI,
-    max: CONFIG.UPDATE_IMAGE_DATA_WORKER_COUNT,
-})
-
-pgPool.on('error', (err, client) => {
-    console.error('Unexpected error on idle client', err)
-    process.exit(-1)
-})
+let pgPool;
 
 const app = express();
 const corsOptions = { origin: CONFIG.CORS_ORIGIN || '*' };
@@ -64,7 +53,14 @@ app.get('/images', async (req, res) => {
 
 const port = 4000
 
-function startAPI() {
+async function startAPI(dbPool) {
+    pgPool = dbPool;
+
+    pgPool.on('error', (err, client) => {
+        console.error('Unexpected error on idle client', err)
+        process.exit(-1)
+    })
+
     app.listen(port, () => {
         console.log(`Server is listening on ${port}`);
     })
