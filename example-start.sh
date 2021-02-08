@@ -1,20 +1,22 @@
-PIXABAY_API_KEY=jfjdkslj4346MJDTfslkf \
-PIXABAY_LIMIT=5000 \
-UNSPLASH_API_KEY=jfjdkslj4346MJDTfslkf \
-UNSPLASH_LIMIT=50 \
-PEXELS_API_KEY=jfjdkslj4346MJDTfslkf \
-PEXELS_LIMIT=200 \
+#!/usr/bin/env bash
+export PEXELS_API_KEY="vbsUxlo8wVfcgfJfANY0T"
+export UNSPLASH_API_KEY="vbsUxlo8wVfcgfJfANY0T"
+export PIXABAY_API_KEY="vbsUxlo8wVfcgfJfANY0T"
 
-CATEGORY=robotics \
+export PIXABAY_LIMIT=5000
+export UNSPLASH_LIMIT=50
+export PEXELS_LIMIT=200
 
-PG_DB_CONNECTION_URI=postgresql://fia:password@fia-postgres:5432/fia \
+export CATEGORY="robotics"
 
-CORS_ORIGIN=www.somedomen.com \
+export PG_DB_CONNECTION_URI="postgresql://fia:password@fia-postgres:5432/fia"
 
-ADMIN_PASSWORD=password123 \
+export CORS_ORIGIN="*"
 
-UPDATE_IMAGE_DATA_WORKER_COUNT=4 \
+export ADMIN_PASSWORD="password123"
 
-UPDATE_CRON=0 * * * * \
+export UPDATE_IMAGE_DATA_WORKER_COUNT=4
+
+export UPDATE_CRON="0 * * * *"
 
 yarn run start
