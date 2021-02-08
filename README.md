@@ -19,4 +19,4 @@
 
 ## Usage
 * Send POST to http(s)://[yourdomain].com:4000/admin/usertoken to issue token for user's requests. body.password must be equal to ADMIN_PASSWORD env.
-* Send GET to http(s)://[yourdomain].com:4000/images?page=1&search=someword to get images. Authentication header must be equal to user's token.
+* Send GET to http(s)://[yourdomain].com:4000/images?page=1&search=someword to get images. 'Authorization' header must be equal to user's token.

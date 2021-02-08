@@ -1,14 +1,20 @@
 import express, { json, urlencoded } from 'express';
 import cors from 'cors';
 import { nanoid } from 'nanoid';
-import pkg from 'pg';
+import pg from 'pg';
 
 import { CONFIG } from './config.js';
 
-const { Client } = pkg;
+const { Pool } = pg;
 
-const client = new Client({
+const pgPool = new Pool({
     connectionString: CONFIG.PG_DB_CONNECTION_URI,
+    max: CONFIG.UPDATE_IMAGE_DATA_WORKER_COUNT,
+})
+
+pgPool.on('error', (err, client) => {
+    console.error('Unexpected error on idle client', err)
+    process.exit(-1)
 })
 
 const app = express();
@@ -19,12 +25,10 @@ app.use(json());
 
 app.use(cors(corsOptions))
 
-app.use(async (req, res, next) => {
-    await client.connect()
-    let configRes = await client.query(`SELECT * FROM config;`)
-    await client.end()
+app.use(/^((?!admin).)*$/i, async (req, res, next) => {
+    let configRes = await pgPool.query(`SELECT * FROM config;`)
 
-    if (req.header('Authentication') === configRes.rows[0].user_api_token) {
+    if (req.header('Authorization') === configRes.rows[0].user_api_token) {
         return next()
     }
 
@@ -38,9 +42,7 @@ app.post('/admin/usertoken', async (req, res) => {
 
     let newTokenForUsers = nanoid()
 
-    await client.connect()
-    await client.query(`UPDATE config SET user_api_token = $1;`, [newTokenForUsers])
-    await client.end()
+    await pgPool.query(`UPDATE config SET user_api_token = $1;`, [newTokenForUsers])
 
     return res.status(201).send({ newTokenForUsers })
 })
@@ -51,13 +53,11 @@ app.get('/images', async (req, res) => {
     let page = req.query['page']
     let searchText = req.query['search']
 
-    await client.connect()
-    let imagesRes = await client.query(`
+    let imagesRes = await pgPool.query(`
         SELECT * FROM images WHERE search_text ILIKE '%${searchText}%' 
         LIMIT 30 
         OFFSET ${(page - 1) * PER_PAGE};
     `)
-    await client.end()
 
     res.send({ images: imagesRes.rows })
 })
